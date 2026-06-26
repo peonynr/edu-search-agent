@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>교육 업체 추천 Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      display: flex;
+      justify-content: center;
+    }
+    .wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 14px; }
+
+    .header {
+      background: #fff;
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .header-icon {
+      width: 42px; height: 42px;
+      background: #e8f0fe;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .header h1 { font-size: 16px; font-weight: 700; color: #111; }
+    .badge {
+      margin-left: auto; font-size: 12px; padding: 4px 10px;
+      border-radius: 20px; background: #e8f5e9; color: #2e7d32; font-weight: 500;
+    }
+    .badge.on { background: #fff3e0; color: #e65100; }
+
+    /* 탭 */
+    .tabs {
+      display: flex;
+      background: #fff;
+      border-radius: 16px;
+      padding: 6px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      gap: 4px;
+    }
+    .tab {
+      flex: 1; padding: 10px; text-align: center;
+      border-radius: 10px; font-size: 14px; font-weight: 500;
+      cursor: pointer; color: #888; transition: all 0.15s;
+      border: none; background: transparent;
+    }
+    .tab.active { background: #4a90e2; color: #fff; }
+
+    /* 카드 */
+    .card {
+      background: #fff; border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .card-title {
+      font-size: 12px; font-weight: 600; color: #777;
+      margin-bottom: 10px;
+    }
+
+    /* 칩 */
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 7px 14px; border: 1.5px solid #e0e0e0;
+      border-radius: 20px; font-size: 13px; color: #555;
+      cursor: pointer; transition: all 0.15s; background: #fff;
+      user-select: none;
+    }
+    .chip:hover { border-color: #4a90e2; color: #4a90e2; }
+    .chip.selected { background: #4a90e2; border-color: #4a90e2; color: #fff; font-weight: 500; }
+
+    /* 숫자 입력 */
+    .number-group { display: flex; flex-direction: column; gap: 12px; }
+    .number-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .number-row label { font-size: 13px; color: #555; min-width: 100px; }
+    .number-row input {
+      width: 100px; padding: 8px 12px;
+      border: 1.5px solid #e0e0e0; border-radius: 10px;
+      font-size: 14px; outline: none; text-align: center;
+    }
+    .number-row input:focus { border-color: #4a90e2; }
+    .number-row span { font-size: 13px; color: #888; }
+
+    /* 텍스트 입력 */
+    .extra-input {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid #e0e0e0; border-radius: 10px;
+      font-size: 14px; outline: none; font-family: inherit; resize: none;
+    }
+    .extra-input:focus { border-color: #4a90e2; }
+
+    /* 요약 */
+    .summary {
+      background: #f0f5ff; border: 1.5px solid #d0e0ff;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #555; display: none;
+    }
+    .summary.show { display: block; }
+    .summary strong { color: #4a90e2; }
+
+    /* 버튼 */
+    .search-btn {
+      width: 100%; padding: 14px;
+      background: #4a90e2; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .search-btn:hover { opacity: 0.9; }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 로딩 */
+    .loading {
+      display: none; flex-direction: column;
+      align-items: center; gap: 12px; padding: 2rem;
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .loading.show { display: flex; }
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid #e0e0e0; border-top-color: #4a90e2;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { font-size: 14px; color: #888; }
+
+    /* 결과 */
+    .result-card {
+      background: #fff; border-radius: 16px; padding: 1.5rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      font-size: 14px; line-height: 1.8; color: #222; display: none;
+    }
+    .result-card.show { display: block; }
+    .result-card h3 { font-size: 15px; font-weight: 700; margin: 14px 0 6px; color: #111; }
+    .result-card h4 {
+      font-size: 14px; font-weight: 600; margin: 12px 0 4px; color: #333;
+      padding-left: 8px; border-left: 3px solid #4a90e2;
+    }
+
+    .tab-panel { display: none; flex-direction: column; gap: 14px; }
+    .tab-panel.active { display: flex; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-icon">🎓</div>
+    <div>
+      <h1>교육 업체 추천 Agent</h1>
+    </div>
+    <span class="badge" id="badge">준비됨</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('review')">📋 후기 기반 추천</button>
+    <button class="tab" onclick="switchTab('search')">🔎 업체 서치</button>
+  </div>
+
+  <!-- 후기 탭 -->
+  <div class="tab-panel active" id="panel-review">
+    <div class="card">
+      <div class="card-title">📚 교육 주제 (복수 선택 가능)</div>
+      <div class="chip-group" id="topic-group">
+        <div class="chip" data-group="topic" data-value="리더십">리더십</div>
+        <div class="chip" data-group="topic" data-value="조직문화">조직문화</div>
+        <div class="chip" data-group="topic" data-value="변화관리">변화관리</div>
+        <div class="chip" data-group="topic" data-value="MZ세대 소통">MZ세대 소통</div>
+        <div class="chip" data-group="topic" data-value="팀빌딩">팀빌딩</div>
+        <div class="chip" data-group="topic" data-value="코칭">코칭</div>
+        <div class="chip" data-group="topic" data-value="다양성/포용">다양성/포용</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✏️ 추가 요청사항 (선택)</div>
+      <textarea class="extra-input" id="review-extra" rows="2" placeholder="예: 대기업 도입 사례가 있는 곳, 자체 콘텐츠가 있는 곳..."></textarea>
+    </div>
+
+    <div class="summary" id="review-summary"></div>
+    <button class="search-btn" onclick="search('review')">🔍 후기 기반 업체 탐색</button>
+  </div>
+
+  <!-- 업체 서치 탭 -->
+  <div class="tab-panel" id="panel-search">
+    <div class="card">
+      <div class="card-title">📊 업체 조건 입력</div>
+      <div class="number-group">
+        <div class="number-row" style="align-items: flex-start; flex-direction: column; gap: 6px;">
+          <label>① 찾는 콘텐츠</label>
+          <input type="text" id="content" placeholder="예: 리더십, 조직문화, MZ세대 소통 등" style="width: 100%; padding: 8px 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;" />
+        </div>
+        <div class="number-row">
+          <label>② 업력</label>
+          <input type="number" id="years" placeholder="예: 10" min="1" />
+          <span>년 이상</span>
+        </div>
+        <div class="number-row">
+          <label>③ 강의 횟수</label>
+          <input type="number" id="lectures" placeholder="예: 100" min="1" />
+          <span>회 이상</span>
+        </div>
+        <div class="number-row">
+          <label>④ 강의 기업(협력사)</label>
+          <input type="number" id="clients" placeholder="예: 50" min="1" />
+          <span>개사 이상</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✏️ 추가 요청사항 (선택)</div>
+      <textarea class="extra-input" id="search-extra" rows="2" placeholder="예: 리더십 전문, 중견기업 경험 있는 곳..."></textarea>
+    </div>
+
+    <button class="search-btn" onclick="search('search')">🔍 조건으로 업체 서치</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p id="loading-msg">검색 중...</p>
+  </div>
+
+  <div class="result-card" id="result"></div>
+
+</div>
+
+<script>
+  const selected = { topic: [] };
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && tab === 'review') || (i === 1 && tab === 'search'));
+    });
+    document.getElementById('panel-review').classList.toggle('active', tab === 'review');
+    document.getElementById('panel-search').classList.toggle('active', tab === 'search');
+    document.getElementById('result').classList.remove('show');
+  }
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const group = chip.dataset.group;
+      const value = chip.dataset.value;
+      if (chip.classList.contains('selected')) {
+        selected[group] = selected[group].filter(v => v !== value);
+      } else {
+        selected[group].push(value);
+      }
+      chip.classList.toggle('selected', selected[group].includes(value));
+      updateReviewSummary();
+    });
+  });
+
+  function updateReviewSummary() {
+    const parts = [];
+    if (selected.topic.length) parts.push(`주제: <strong>${selected.topic.join(', ')}</strong>`);
+    const summary = document.getElementById('review-summary');
+    if (parts.length) {
+      summary.innerHTML = '🔎 선택 조건: ' + parts.join(' · ');
+      summary.classList.add('show');
+    } else {
+      summary.classList.remove('show');
+    }
+  }
+
+  async function search(mode) {
+    const btn = document.querySelector(`#panel-${mode} .search-btn`);
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    const badge = document.getElementById('badge');
+    const loadingMsg = document.getElementById('loading-msg');
+
+    let body = { mode };
+
+    if (mode === 'review') {
+      const extra = document.getElementById('review-extra').value.trim();
+      if (!selected.topic.length && !extra) { alert('교육 주제를 하나 이상 선택해주세요!'); return; }
+      body.topic = selected.topic.join(', ');
+      body.extra = extra;
+      loadingMsg.textContent = '후기와 사례를 검색하고 있어요...';
+    } else {
+      const content = document.getElementById('content').value.trim();
+      const years = document.getElementById('years').value;
+      const lectures = document.getElementById('lectures').value;
+      const clients = document.getElementById('clients').value;
+      const extra = document.getElementById('search-extra').value.trim();
+      if (!content && !years && !lectures && !clients && !extra) { alert('조건을 하나 이상 입력해주세요!'); return; }
+      body.content = content;
+      body.years = years;
+      body.lectures = lectures;
+      body.clients = clients;
+      body.extra = extra;
+      loadingMsg.textContent = '조건에 맞는 업체를 검색하고 있어요...';
+    }
+
+    btn.disabled = true;
+    loading.classList.add('show');
+    result.classList.remove('show');
+    badge.textContent = '검색 중...';
+    badge.className = 'badge on';
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      result.innerHTML = data.error ? `<p style="color:red">❌ ${data.error}</p>` : formatText(data.result);
+      result.classList.add('show');
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      result.innerHTML = '<p style="color:red">❌ 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</p>';
+      result.classList.add('show');
+    }
+
+    btn.disabled = false;
+    loading.classList.remove('show');
+    badge.textContent = '준비됨';
+    badge.className = 'badge';
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/## (.*)/g, '<h3>$1</h3>')
+      .replace(/### (\d+\. .*)/g, '<h4>$1</h4>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^- (.*)/gm, '• $1')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  }
+</script>
+</body>
+</html>
